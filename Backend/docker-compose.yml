@@ -1,0 +1,36 @@
+ 
+
+services:
+  veriton.mysql:
+    image: mysql:8.0
+    container_name: veriton-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: veriton_db
+      MYSQL_USER: veriton
+      MYSQL_PASSWORD: veriton123
+    ports:
+      - "3306:3306"
+    volumes:
+      - veriton_mysql_data:/var/lib/mysql
+
+  veriton.api:
+    container_name: veriton-api
+    build:
+      context: .
+      dockerfile: Veriton.API/Dockerfile
+    depends_on:
+      - veriton.mysql
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__MySql: "Server=veriton.mysql;Port=3306;Database=veriton_db;User=veriton;Password=veriton123;"
+      Jwt__Key: "Veriton_f8A9C4D27E1B6F5A90D3C2E8B7A6419D5E0F4C8B2A7D9E1364CFA90B8D71E52"
+      Jwt__Issuer: "Veriton"
+      Jwt__Audience: "VeritonUsers"
+    ports:
+      - "5000:8080"
+    restart: always
+
+volumes:
+  veriton_mysql_data:
