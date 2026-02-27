@@ -15,8 +15,24 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("MySql")
-            ?? throw new InvalidOperationException("MySql connection string not found.");
+        // Try to get Railway's MYSQL_URL first
+        var mySqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL");
+        var connectionString = configuration.GetConnectionString("MySql");
+
+        if (!string.IsNullOrEmpty(mySqlUrl) && mySqlUrl.StartsWith("mysql://"))
+        {
+            // Parse mysql://user:password@host:port/database
+            var uri = new Uri(mySqlUrl);
+            var userInfo = uri.UserInfo.Split(':');
+            var db = uri.AbsolutePath.TrimStart('/');
+            connectionString = $"Server={uri.Host};Port={(uri.Port > 0 ? uri.Port : 3306)};Database={db};User={userInfo[0]};Password={(userInfo.Length > 1 ? userInfo[1] : "")};";
+        }
+        
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException("MySql connection string not found. Please set ConnectionStrings__MySql or MYSQL_URL environment variable.");
+        }
+
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseMySql(
